@@ -6,6 +6,7 @@ using System.Linq;
 using System;
 using System.Net.Mail;
 using System.Net;
+using System.Configuration;
 
 namespace AndersonNotificationFunction
 {
@@ -23,6 +24,7 @@ namespace AndersonNotificationFunction
             _iDEmailNotification = new DEmailNotification();
 
         }
+
         #region Create
         public EmailNotification Create(int createdBy, EmailNotification emailNotification)
         {   
@@ -34,9 +36,7 @@ namespace AndersonNotificationFunction
             return EmailNotification(eEmailNotification);
         }
         #endregion
-
-        #region Send
-        #endregion
+        
 
         #region Read
         public EmailNotification Read(int emailNotificationId)
@@ -73,39 +73,75 @@ namespace AndersonNotificationFunction
         #region Other Function
         public EmailNotification Send(int createdBy, EmailNotification emailNotification)
         {
+            EmailNotification emailNotificationWithDefaultValues = SetDefaultValues(emailNotification);
             MailMessage email = new MailMessage();
-            email.IsBodyHtml = emailNotification.IsBodyHtml;
-            email.Body = emailNotification.Body;
-            if (!string.IsNullOrEmpty(emailNotification.Bcc))
-                email.Bcc.Add(emailNotification.Bcc);
-            if (!string.IsNullOrEmpty(emailNotification.CC))
-                email.CC.Add(emailNotification.CC);
-            email.From = new MailAddress(emailNotification.From);
-            email.Subject = emailNotification.Subject;
-            email.To.Add(emailNotification.To);
+            email.IsBodyHtml = emailNotificationWithDefaultValues.IsBodyHtml.Value;
+            email.Body = emailNotificationWithDefaultValues.Body;
+            if (!string.IsNullOrEmpty(emailNotificationWithDefaultValues.Bcc))
+                email.Bcc.Add(emailNotificationWithDefaultValues.Bcc);
+            if (!string.IsNullOrEmpty(emailNotificationWithDefaultValues.CC))
+                email.CC.Add(emailNotificationWithDefaultValues.CC);
+            email.From = new MailAddress(emailNotificationWithDefaultValues.From);
+            email.Subject = emailNotificationWithDefaultValues.Subject;
+            email.To.Add(emailNotificationWithDefaultValues.To);
 
             SmtpClient smtp = new SmtpClient();
-            smtp.Host = emailNotification.Host;
-            smtp.Credentials = new NetworkCredential(emailNotification.Username, emailNotification.Password);
-            smtp.EnableSsl = emailNotification.EnableSsl;
+            smtp.Host = emailNotificationWithDefaultValues.Host;
+            smtp.Credentials = new NetworkCredential(emailNotificationWithDefaultValues.Username, emailNotificationWithDefaultValues.Password);
+            smtp.EnableSsl = emailNotificationWithDefaultValues.EnableSsl.Value;
+            smtp.Port = emailNotificationWithDefaultValues.Port.Value;
             smtp.Send(email);
-            Create(createdBy, emailNotification);
 
+            var recordedEmailNotification = Create(createdBy, emailNotificationWithDefaultValues);
+            //prevent the code on returning the default values
+            emailNotification.CreatedDate = recordedEmailNotification.CreatedDate;
+            emailNotification.UpdatedDate = recordedEmailNotification.UpdatedDate;
+            emailNotification.CreatedBy = recordedEmailNotification.CreatedBy;
+            emailNotification.EmailNotificationId = recordedEmailNotification.EmailNotificationId;
+            emailNotification.UpdatedBy = recordedEmailNotification.UpdatedBy;
             return emailNotification;
         }
 
-        private EEmalNotification EEmailNotification(EmailNotification emailNotification)
+        private EmailNotification SetDefaultValues(EmailNotification emailNotification)
         {
-            return new EEmalNotification
+            return new EmailNotification
             {
-                EnableSsl = emailNotification.EnableSsl,
-                IsBodyHtml = emailNotification.IsBodyHtml,
+                EnableSsl = (emailNotification.EnableSsl ?? Convert.ToBoolean(ConfigurationManager.AppSettings["EmailNotificationEnableSsl"])),
+                IsBodyHtml = emailNotification.IsBodyHtml ?? Convert.ToBoolean(ConfigurationManager.AppSettings["EmailNotificationIsBodyHtml"]),
 
                 CreatedDate = emailNotification.CreatedDate,
                 UpdatedDate = emailNotification.UpdatedDate,
 
                 CreatedBy = emailNotification.CreatedBy,
                 EmailNotificationId = emailNotification.EmailNotificationId,
+                Port = emailNotification.Port ?? Convert.ToInt32(ConfigurationManager.AppSettings["EmailNotificationPort"]),
+                UpdatedBy = emailNotification.UpdatedBy,
+
+                Body = emailNotification.Body,
+                Bcc = (!string.IsNullOrEmpty(emailNotification.Bcc)) ? emailNotification.Bcc : ConfigurationManager.AppSettings["EmailNotificationBcc"],
+                CC = (!string.IsNullOrEmpty(emailNotification.CC)) ? emailNotification.CC : ConfigurationManager.AppSettings["EmailNotificationCC"],
+                Host = (!string.IsNullOrEmpty(emailNotification.Host)) ? emailNotification.Host : ConfigurationManager.AppSettings["EmailNotificationHost"],
+                From = (!string.IsNullOrEmpty(emailNotification.From)) ? emailNotification.From : ConfigurationManager.AppSettings["EmailNotificationFrom"],
+                Password = (!string.IsNullOrEmpty(emailNotification.Password)) ? emailNotification.Password : ConfigurationManager.AppSettings["EmailNotificationPassword"],
+                Subject = (!string.IsNullOrEmpty(emailNotification.Subject)) ? emailNotification.Subject : ConfigurationManager.AppSettings["EmailNotificationSubject"],
+                To = (!string.IsNullOrEmpty(emailNotification.To)) ? emailNotification.To : ConfigurationManager.AppSettings["EmailNotificationTo"],
+                Username = (!string.IsNullOrEmpty(emailNotification.Username)) ? emailNotification.Username : ConfigurationManager.AppSettings["EmailNotificationUsername"],
+            };
+        }
+
+        private EEmalNotification EEmailNotification(EmailNotification emailNotification)
+        {
+            return new EEmalNotification
+            {
+                EnableSsl = emailNotification.EnableSsl.Value,
+                IsBodyHtml = emailNotification.IsBodyHtml.Value,
+
+                CreatedDate = emailNotification.CreatedDate,
+                UpdatedDate = emailNotification.UpdatedDate,
+
+                CreatedBy = emailNotification.CreatedBy,
+                EmailNotificationId = emailNotification.EmailNotificationId,
+                Port = emailNotification.Port.Value,
                 UpdatedBy = emailNotification.UpdatedBy,
 
                 Body = emailNotification.Body,
@@ -131,6 +167,7 @@ namespace AndersonNotificationFunction
 
                 CreatedBy = eEmailNotification.CreatedBy,
                 EmailNotificationId = eEmailNotification.EmailNotificationId,
+                Port = eEmailNotification.Port,
                 UpdatedBy = eEmailNotification.UpdatedBy,
 
                 Body = eEmailNotification.Body,
@@ -155,6 +192,7 @@ namespace AndersonNotificationFunction
 
                 CreatedBy = a.CreatedBy,
                 EmailNotificationId = a.EmailNotificationId,
+                Port = a.Port,
                 UpdatedBy = a.UpdatedBy,
 
                 Body = a.Body,

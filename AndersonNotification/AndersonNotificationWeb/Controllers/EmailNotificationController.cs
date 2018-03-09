@@ -24,22 +24,6 @@ namespace AndersonNotificationWeb.Controllers
         {
             _iFEmailNotification.Send(CredentialId,notification);
             return View(notification);
-            //try
-            //{
-            //    if (ModelState.IsValid)
-            //    {
-            //        TempData["message"] = "Email has been sent, successfully!";
-            //    }
-            //    return RedirectToAction("Create");
-            //}
-            //catch (Exception )
-            //{
-            //    if (ModelState.IsValid)
-            //    {
-            //        TempData["message"] = "Opps! Something went wrong. Please, try again.";
-            //    }
-            //    return RedirectToAction("Create");
-            //}
         }
 
         #endregion

@@ -1,3 +1,4 @@
+using AndersonNotificationWeb.App_Start;
 using System.Linq;
 using System.Web.Mvc;
 
